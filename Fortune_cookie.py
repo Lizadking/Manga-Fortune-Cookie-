@@ -1,8 +1,10 @@
 import pandas as pd
 import random
 
-pd.set_option('display.max_columns', None)
-pd.set_option('display.max_rows', None)
+from pandas.core.frame import DataFrame
+
+#pd.set_option('display.max_columns', None)
+#pd.set_option('display.max_rows', None)
 
 
 
@@ -25,6 +27,7 @@ def sorted_genre_cols(dataframe):
     for i in range(len(testing_col)):
         if "Genre" in testing_col[i]:
             found_cols.append(i)
+
     #create empty data frame
     temp_dataframe = pd.DataFrame()
     temp_dataframe['Genre'] = ""
@@ -42,6 +45,36 @@ def sorted_genre_cols(dataframe):
     
     
     return unsorted_genre_list
+
+def filtered_search(dataframe,genre1,genre2,genre3):
+    #include the random pick after implementing filter , and default arguments 
+    
+    found_cols = []
+    testing_col = list(dataframe.columns.values)
+
+    #get gnere col locations 
+    for i in range(len(testing_col)):
+        if "Genre" in testing_col[i]:
+            found_cols.append(testing_col[i])
+    #get the title colum 
+
+
+    #filter 
+    #filt =  (dataframe[found_cols[0]] == genre1)
+    #print(dataframe.loc[filt,testing_col[1]])
+    print(dataframe.loc[filt])
+
+    
+        
+
+    """
+    return print(dataframe.loc[((dataframe[found_cols[0]] == genre1) | (dataframe[found_cols[1]] == genre1) | (dataframe[found_cols[2]]== genre1)) &
+    ((dataframe[found_cols[0]] == genre2) | (dataframe[found_cols[1]] == genre2) | (dataframe[found_cols[2]]== genre2)) &
+    ((dataframe[found_cols[0]] == genre3) | (dataframe[found_cols[1]] == genre3) | (dataframe[found_cols[2]]== genre3))])
+    """
+   
+     
+
         
             
     
@@ -55,8 +88,11 @@ if __name__ == "__main__":
     manga_base = pd.read_excel('Manga database.xlsx')
     cols = list(manga_base.columns.values)
     max_row = manga_base[manga_base.columns[0]].count()-1
-
-    print(sorted_genre_cols(manga_base))
+    #print(cols)
+    #print(sorted_genre_cols(manga_base))
+    filtered_search(manga_base,"Action",None,None)
+    
+    
 
 
 
