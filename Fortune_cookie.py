@@ -1,6 +1,10 @@
 import pandas as pd
 import random
 
+import requests  
+import json
+from PIL import Image
+
 from pandas.core.frame import DataFrame
 from pandas.tseries.offsets import DateOffset
 
@@ -23,12 +27,43 @@ def generate_rand_manga(dataframe,max_row_count):
     """
     Function: generate_rand_manga(dataframe,max_row_count)
     Pre-Condition: A instantiated dataframe, a maxium row count for database 
-    Return: A dataframe randomly selected 
+    Return: A list containing [titel,current chapter]
     Misc: 
     """
+    #get the colums in the dataframe
+    testing_col = list(dataframe.columns.values)
     
+   
+    col_locs = []
+    #find the title colulm
+    title_col_loc= ''
+    valid_title_col_names = ['title','Title','TITLE','Name','NAME','name']
+    for i in range(len(testing_col)):
+        if(testing_col[i] in valid_title_col_names):
+            col_locs.append(i)
+
+    
+    
+    #find the current chapter or chapter coulum 
+    chapter_col_loc = ''
+    valid_title_col_names = ['chap','number','chapter','Currentchapter']
+    for i in range(len(testing_col)):
+        if(testing_col[i] in valid_title_col_names):
+            col_locs.append(i)
+    #generate random manga
+
     rand_manga_index = random.randint(0,max_row_count)
-    return print(dataframe.iloc[rand_manga_index])
+    #print(dataframe.iloc[rand_manga_index].values)
+    #save title and chapter in a list and return it
+
+    #there's a glitch where unicode \xa0 appears and it needs to be removed 
+    manga_info = [dataframe.iloc[rand_manga_index,col_locs[0]],dataframe.iloc[rand_manga_index,col_locs[1]]]
+    #remove \xa0 
+    if manga_info[0].find('\xa0') != -1:
+        manga_info[0] = manga_info[0].replace(u'\xa0', u' ')
+
+
+    return manga_info
 
 def sorted_genre_cols(dataframe):
     """
@@ -99,6 +134,9 @@ def main_menu(userinput,dataframe):
     print("Main Menu: \n1) Random Pick\n2)Filtered Random Pick \n3)Exit")
     userinput = input("Enter Menu option ")
     user_valid = True
+
+def generate_image_url(title):
+    print(title)
     
             
         
@@ -113,8 +151,15 @@ if __name__ == "__main__":
     manga_base = pd.read_excel('Manga database.xlsx') #make this a function soon 
     cols = list(manga_base.columns.values)
     max_row = manga_base[manga_base.columns[0]].count()-1
+    #remove column white space
+    manga_base.columns = manga_base.columns.str.replace(' ', '')
+    
+
     user_input = 0
     print("Welcome to the prototype fortune cookie")
+    #testing only, generate a random manga and image from mangadex 
+    manga_fortune_cookie = generate_rand_manga(manga_base,max_row)
+    generate_image_url(manga_fortune_cookie[0])
 
 
 
