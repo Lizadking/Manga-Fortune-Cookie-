@@ -1,3 +1,4 @@
+from datetime import time
 import pandas as pd
 import random
 
@@ -136,7 +137,73 @@ def main_menu(userinput,dataframe):
     user_valid = True
 
 def generate_image_url(title):
+    """
+    MAKE HEADER HERE 
+    return: a valid managdex image url 
+    """
+    #Step 1 - send title to mangadex and await response-------
     print(title)
+    print("Checking for valid title...")
+    payload ={'title': title}
+    response = requests.get('https://api.mangadex.org/manga',params=payload,timeout=10)
+    
+    if(not response.ok):
+        print("Error: cannot obtain valid manga ")
+        return None #this should return the bidoof url/image
+
+    response_json= response.json() #convert response into a json
+
+    """
+    400 check here 
+    """
+    #step 2 base manga ID check---------
+    print("checking for manga ID...")
+    base_id = response_json['results'][0]['data']['id'] #exception is thrown here, IndexError: list index out of range, see what manga causes it and 
+                                                        #and handle the exception, this could be a manga not in mangadex
+    
+    id_payload = {}
+    id_payload['manga[]'] = [base_id]
+    id_payload['limit'] = 100
+    cover = requests.get('https://api.mangadex.org/cover',params=id_payload,timeout=10)
+    print(cover.status_code)
+    #in case 400 code for cover 
+    if(not cover.ok):
+        print("Error: cannot obtain valid manga ID ")
+        return None #this should return the bidoof url/image
+
+    json_cover = cover.json()
+
+    
+
+    #step 3 generate mangadex url---------
+    print("Checking for valid url...")
+    volume = ""
+    file_name = ""
+    for item in json_cover['results']:
+        print(item['data']['attributes']['volume'],item['data']['attributes']['fileName'])
+
+        if(item['data']['attributes']['volume'] == '1'):
+            volume = item['data']['attributes']['volume']
+            file_name = item['data']['attributes']['fileName']
+
+        elif(item['data']['attributes']['volume'] == None):#get the default cover if there is none
+            file_name = item['data']['attributes']['fileName']
+
+    
+
+    base_cover_url = 'https://uploads.mangadex.org/covers/'
+    base_cover_url+= base_id + '/'+file_name
+
+    url_ping = requests.get(base_cover_url)
+        
+        #failsafe for 400 url_ping
+    if(not url_ping.ok):
+        print("Error: cannot obtain valid manga  url")
+        return None #this should return the bidoof url/image
+
+    return base_cover_url
+    
+
     
             
         
@@ -159,7 +226,7 @@ if __name__ == "__main__":
     print("Welcome to the prototype fortune cookie")
     #testing only, generate a random manga and image from mangadex 
     manga_fortune_cookie = generate_rand_manga(manga_base,max_row)
-    generate_image_url(manga_fortune_cookie[0])
+    print(generate_image_url(manga_fortune_cookie[0]))
 
 
 
