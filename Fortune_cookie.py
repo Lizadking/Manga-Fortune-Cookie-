@@ -6,6 +6,10 @@ import requests
 import json
 from PIL import Image
 
+
+import urllib.request
+from PIL import Image
+
 from pandas.core.frame import DataFrame
 from pandas.tseries.offsets import DateOffset
 
@@ -28,7 +32,7 @@ def generate_rand_manga(dataframe,max_row_count):
     """
     Function: generate_rand_manga(dataframe,max_row_count)
     Pre-Condition: A instantiated dataframe, a maxium row count for database 
-    Return: A list containing [titel,current chapter]
+    Return: A list containing [title,current chapter]
     Misc: 
     """
     #get the colums in the dataframe
@@ -94,11 +98,17 @@ def sorted_genre_cols(dataframe):
             #filter our genre list and apppend to genre_list 
             if((row[testing_col[found_col_index]] not in unsorted_genre_list) and not (pd.isnull(row[testing_col[found_col_index]]))):     
                 unsorted_genre_list.append(row[testing_col[found_col_index]])
+    clear_col_list = []
+    #another pass through to get rid of the \xa0 unicode 
+    for item in unsorted_genre_list:
+        if item.find('\xa0') != -1:
+            unsorted_genre_list.remove(item)
+
     
     
     return unsorted_genre_list
 
-def filtered_search(dataframe,genre1,genre2,genre3):
+def filtered_search(dataframe,genre1 = None,genre2 = None,genre3 = None):
     """
     MAKE HEADER HERE 
     """
@@ -119,7 +129,6 @@ def filtered_search(dataframe,genre1,genre2,genre3):
                 found_cols.append(testing_col[i])
         #get the title colum 
 
-
         #filter 
         genre_list = [genre1,genre2,genre3]   
         filt = (dataframe[found_cols[0]].isin(genre_list)) | (dataframe[found_cols[1]].isin(genre_list)) | (dataframe[found_cols[2]].isin(genre_list)) 
@@ -139,7 +148,7 @@ def main_menu(userinput,dataframe):
 def generate_image_url(title):
     """
     MAKE HEADER HERE 
-    return: a valid managdex image url 
+    return: List [a valid managdex image url,filename]
     """
     #Step 1 - send title to mangadex and await response-------
     print(title)
@@ -153,13 +162,10 @@ def generate_image_url(title):
 
     response_json= response.json() #convert response into a json
 
-    """
-    400 check here 
-    """
     #step 2 base manga ID check---------
     print("checking for manga ID...")
     base_id = response_json['results'][0]['data']['id'] #exception is thrown here, IndexError: list index out of range, see what manga causes it and 
-                                                        #and handle the exception, this could be a manga not in mangadex
+                                                        #and handle the exception, this could be a manga not in mangadex, fuck it just handle the index out of bounds exception
     
     id_payload = {}
     id_payload['manga[]'] = [base_id]
@@ -173,7 +179,6 @@ def generate_image_url(title):
 
     json_cover = cover.json()
 
-    
 
     #step 3 generate mangadex url---------
     print("Checking for valid url...")
@@ -189,7 +194,6 @@ def generate_image_url(title):
         elif(item['data']['attributes']['volume'] == None):#get the default cover if there is none
             file_name = item['data']['attributes']['fileName']
 
-    
 
     base_cover_url = 'https://uploads.mangadex.org/covers/'
     base_cover_url+= base_id + '/'+file_name
@@ -201,32 +205,73 @@ def generate_image_url(title):
         print("Error: cannot obtain valid manga  url")
         return None #this should return the bidoof url/image
 
+    #create image CHANGE TO SAVE TO A FILE LOC 
+    
+    urllib.request.urlretrieve(base_cover_url,file_name)
+    img = Image.open(file_name)
+    img.show()
+    
+
     return base_cover_url
-    
 
+def initlize_dataframe(file_name):
+    """
+    MAKE HEADER HERE 
+    return: List [mangadataframe,rowcount]
+    """
+    #try to load in a valid xlsx file 
+    try:
+        pd.read_excel(file_name)
+    #fail, exception thrown 
     
-            
+    except FileNotFoundError:
+        print("Error: File could not be found")
+        return None
+    #Success 
+    else:
+        #initlize the dataframe
+        manga_base = pd.read_excel(file_name)
         
-        
+        cols = list(manga_base.columns.values)
+        max_row = manga_base[manga_base.columns[0]].count()-1
+        #remove column white space
+        manga_base.columns = manga_base.columns.str.replace(' ', '')
+        print("File load in success!")
 
-   
-   
-   
+        return manga_base
+
+def get_max_row_count(dataframe):
+    """
+    MAKE HEADER HERE 
+    return: row count 
+    """
+    try:
+        cols = list(dataframe.columns.values)
+    except Exception:
+        print("Error: could not get max_row_count, perhaps the dataframe does not exist")
+        return 0
+    else:
+        max_row = dataframe[dataframe.columns[0]].count()-1
+        return max_row
+
+
+
+
+
+       
 
 if __name__ == "__main__":
-    #initlize the dataframe
-    manga_base = pd.read_excel('Manga database.xlsx') #make this a function soon 
-    cols = list(manga_base.columns.values)
-    max_row = manga_base[manga_base.columns[0]].count()-1
-    #remove column white space
-    manga_base.columns = manga_base.columns.str.replace(' ', '')
-    
 
+ 
+    manga_base = initlize_dataframe('Manga database.xlsx')
+    manga_max_row = get_max_row_count(manga_base)
     user_input = 0
     print("Welcome to the prototype fortune cookie")
     #testing only, generate a random manga and image from mangadex 
-    manga_fortune_cookie = generate_rand_manga(manga_base,max_row)
-    print(generate_image_url(manga_fortune_cookie[0]))
+    manga_fortune_cookie = generate_rand_manga(manga_base,manga_max_row)
+    #manga_fortune_cookie = filtered_search(manga_base,"Action")
+    img_url = generate_image_url(manga_fortune_cookie[0]) #possibly move this to generate_rand_manga()
+    
 
 
 
