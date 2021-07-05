@@ -1,4 +1,5 @@
 from datetime import time
+from posixpath import basename
 import pandas as pd
 import random
 import webbrowser
@@ -158,10 +159,11 @@ def generate_image_url(title = ""):
     misc:
     Notes: probably change the general exceptions to be more specific later on
     """
+    fail_path = 'img\\bidoof.png'
     #Step 1 - send title to mangadex and await response-------
     print(title)
     print("Checking for valid title...")
-    payload ={'title': title}
+    payload = {'title': title}
     #this causes a ton of crashes if cannot connect to server 
     try:
         response = requests.get('https://api.mangadex.org/manga',params=payload,timeout=4)
@@ -171,6 +173,8 @@ def generate_image_url(title = ""):
 
         if(not response.ok):
             print("Error: cannot obtain valid manga ")
+            image = Image.open(fail_path)
+            image.show()
             return None #this should return the bidoof url/image
 
         response_json= response.json() #convert response into a json
@@ -181,7 +185,8 @@ def generate_image_url(title = ""):
             base_id = response_json['results'][0]['data']['id'] 
         except IndexError as ex:
             print("Cannot get valid index")
-            base_cover_url = ""
+            image = Image.open(fail_path)
+            image.show()
         else:
             id_payload = {}
             id_payload['manga[]'] = [base_id]
@@ -192,11 +197,15 @@ def generate_image_url(title = ""):
             except Exception:
                 print("Error: Cannot connect, timeout error")
                 #make bidoof base url
+                image = Image.open(fail_path)
+                image.show()
             else:
                 print(cover.status_code)
                 #in case 400 code for cover 
                 if(not cover.ok):
                     print("Error: cannot obtain valid manga ID ")
+                    image = Image.open(fail_path)
+                    image.show()
                     return None #this should return the bidoof url/image
 
                 json_cover = cover.json()
@@ -223,26 +232,37 @@ def generate_image_url(title = ""):
                     url_ping = requests.get(base_cover_url,timeout=4)
                 except Exception:
                     print('Error:Cannot connect, timeout Error')
+                    img = Image.open(fail_path)
+                    img.show() 
                 else:
                     #failsafe for 400 url_ping
                     if(not url_ping.ok):
                         print("Error: cannot obtain valid manga  url")
+                        image = Image.open(fail_path)
+                        image.show()
                         return None #this should return the bidoof url/image
 
-                    #create image save to a file path
-                    #check if the /img path exists first 
-                
+                #Step4 create image save to a file path------
+                    file_path =  os.path.relpath('img')
+                    
+                    
+                    #check if the /img path exists first
                     if(not os.path.exists('img')):
                         print('/img path does not exist')
-                            
-                    
-                    urllib.request.urlretrieve(base_cover_url,file_name)
+                        #if it doesn't create the dir and put the file in there 
+                        os.makedirs('img')
+                        file_path = os.path.join(os.path.relpath('img'),file_name)
+                        urllib.request.urlretrieve(base_cover_url,file_path) # save file to path 
+       
+                    else:
+                        #check if file is already in /img           
+                        file_path = os.path.join(os.path.relpath('img'),file_name)
+                        urllib.request.urlretrieve(base_cover_url,file_path)
+                        img = Image.open(file_path)
+                        img.show() 
 
-                    img = Image.open(file_name)
-                    img.show()
-                    
-                    
-                    return base_cover_url
+                        return base_cover_url
+
 
 def initlize_dataframe(file_name):
     """
@@ -311,8 +331,12 @@ if __name__ == "__main__":
     print("Welcome to the prototype fortune cookie")
     #testing only, generate a random manga and image from mangadex 
     manga_fortune_cookie = generate_rand_manga(manga_base,manga_max_row)
+    #------TESTING CASES-----------------------------------------------
     #manga_fortune_cookie = filtered_search(manga_base,"Action")
-    img_url = generate_image_url(manga_fortune_cookie[0]) #possibly move this to generate_rand_manga()
+    #img_url = generate_image_url(manga_fortune_cookie[0]) #possibly move this to generate_rand_manga()
+    #img_url = generate_image_url('Temple')
+
+    
     
     
 
