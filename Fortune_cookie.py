@@ -15,10 +15,7 @@ from PIL import Image
 from pandas.core.frame import DataFrame
 from pandas.tseries.offsets import DateOffset
 
-#pd.set_option('display.max_columns', None)
-#pd.set_option('display.max_rows', None)
 
-#print(manga_base.loc[(manga_base[cols[5]]== 'Action') | (manga_base[cols[6]] == 'Action') | (manga_base[cols[7]]== 'Action')]) 
 
 def print_dataframe(dataframe):
     """
@@ -40,6 +37,7 @@ def generate_rand_manga(dataframe,max_row_count):
     #get the colums in the dataframe
     try:
         testing_col = list(dataframe.columns.values)
+        
     except Exception as ex:
         print("Something went wrong, cannot generate manga")
         print(ex)
@@ -49,7 +47,7 @@ def generate_rand_manga(dataframe,max_row_count):
         col_locs = []
         #find the title colulm
         title_col_loc= ''
-        valid_title_col_names = ['title','Title','TITLE','Name','NAME','name']
+        valid_title_col_names = ['title','Title','TITLE','Name','NAME','name','Manga','manga']
         for i in range(len(testing_col)):
             if(testing_col[i] in valid_title_col_names):
                 col_locs.append(i)
@@ -58,24 +56,39 @@ def generate_rand_manga(dataframe,max_row_count):
         
         #find the current chapter or chapter coulum 
         chapter_col_loc = ''
-        valid_title_col_names = ['chap','number','chapter','Currentchapter']
+        
+        valid_title_col_names = ['chap','number','chapter','Currentchapter','ch','ch','Chapter']
         for i in range(len(testing_col)):
+            
             if(testing_col[i] in valid_title_col_names):
                 col_locs.append(i)
+
         #generate random manga
+        print("col locs= ",col_locs)
 
         rand_manga_index = random.randint(0,max_row_count)
         #print(dataframe.iloc[rand_manga_index].values)
         #save title and chapter in a list and return it
 
         #there's a glitch where unicode \xa0 appears and it needs to be removed 
-        manga_info = [dataframe.iloc[rand_manga_index,col_locs[0]],dataframe.iloc[rand_manga_index,col_locs[1]]]
-        #remove \xa0 
-        if manga_info[0].find('\xa0') != -1:
-            manga_info[0] = manga_info[0].replace(u'\xa0', u' ')
+        
+        try:
+            manga_info = [dataframe.iloc[rand_manga_index,col_locs[0]],dataframe.iloc[rand_manga_index,col_locs[1]]]
+        except IndexError as ex:
+            print("Error: Cannot Locate Chapter Column or Title column, check formatting")
+            print(ex)
+            manga_info = [0,""]
+            return manga_info
+        else:
+
+            #remove \xa0 
+            if manga_info[0].find('\xa0') != -1:
+                manga_info[0] = manga_info[0].replace(u'\xa0', u' ')
+            
 
 
-        return manga_info
+            return manga_info
+        
 
 def sorted_genre_cols(dataframe):
     """
@@ -124,7 +137,6 @@ def filtered_search(dataframe,genre1 = None,genre2 = None,genre3 = None):
 
     else:
 
-    
         #include the random pick after implementing filter , and default arguments 
         
         found_cols = []
@@ -159,6 +171,10 @@ def generate_image_url(title = ""):
     misc:
     Notes: probably change the general exceptions to be more specific later on
     """
+    
+    
+
+
     fail_path = 'img\\bidoof.png'
     #Step 1 - send title to mangadex and await response-------
     print(title)
@@ -333,24 +349,12 @@ if __name__ == "__main__":
     manga_fortune_cookie = generate_rand_manga(manga_base,manga_max_row)
     #------TESTING CASES-----------------------------------------------
     #manga_fortune_cookie = filtered_search(manga_base,"Action")
-    #img_url = generate_image_url(manga_fortune_cookie[0]) #possibly move this to generate_rand_manga()
+    img_url = generate_image_url(manga_fortune_cookie[0])
     #img_url = generate_image_url('Temple')
-
-    
-    
-    
-
-
-
-    #main_menu(0,manga_base)
-
+    #filtered_search(manga_base,'Drama')
     
 
     
-  
-    #filtered_search(manga_base,"Comedy","Action",None)
-    #print(sorted_genre_cols(manga_base))
-    #print(generate_rand_manga(manga_base,max_row))
     
     
 
