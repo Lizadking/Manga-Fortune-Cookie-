@@ -1,9 +1,10 @@
 from datetime import time
 import pandas as pd
 import random
-
+import webbrowser
 import requests  
 import json
+import os 
 from PIL import Image
 
 
@@ -36,39 +37,44 @@ def generate_rand_manga(dataframe,max_row_count):
     Misc: 
     """
     #get the colums in the dataframe
-    testing_col = list(dataframe.columns.values)
-    
-   
-    col_locs = []
-    #find the title colulm
-    title_col_loc= ''
-    valid_title_col_names = ['title','Title','TITLE','Name','NAME','name']
-    for i in range(len(testing_col)):
-        if(testing_col[i] in valid_title_col_names):
-            col_locs.append(i)
+    try:
+        testing_col = list(dataframe.columns.values)
+    except Exception as ex:
+        print("Something went wrong, cannot generate manga")
+        print(ex)
+        manga_info = ["aaaaa",0]
+        return(manga_info)
+    else:
+        col_locs = []
+        #find the title colulm
+        title_col_loc= ''
+        valid_title_col_names = ['title','Title','TITLE','Name','NAME','name']
+        for i in range(len(testing_col)):
+            if(testing_col[i] in valid_title_col_names):
+                col_locs.append(i)
 
-    
-    
-    #find the current chapter or chapter coulum 
-    chapter_col_loc = ''
-    valid_title_col_names = ['chap','number','chapter','Currentchapter']
-    for i in range(len(testing_col)):
-        if(testing_col[i] in valid_title_col_names):
-            col_locs.append(i)
-    #generate random manga
+        
+        
+        #find the current chapter or chapter coulum 
+        chapter_col_loc = ''
+        valid_title_col_names = ['chap','number','chapter','Currentchapter']
+        for i in range(len(testing_col)):
+            if(testing_col[i] in valid_title_col_names):
+                col_locs.append(i)
+        #generate random manga
 
-    rand_manga_index = random.randint(0,max_row_count)
-    #print(dataframe.iloc[rand_manga_index].values)
-    #save title and chapter in a list and return it
+        rand_manga_index = random.randint(0,max_row_count)
+        #print(dataframe.iloc[rand_manga_index].values)
+        #save title and chapter in a list and return it
 
-    #there's a glitch where unicode \xa0 appears and it needs to be removed 
-    manga_info = [dataframe.iloc[rand_manga_index,col_locs[0]],dataframe.iloc[rand_manga_index,col_locs[1]]]
-    #remove \xa0 
-    if manga_info[0].find('\xa0') != -1:
-        manga_info[0] = manga_info[0].replace(u'\xa0', u' ')
+        #there's a glitch where unicode \xa0 appears and it needs to be removed 
+        manga_info = [dataframe.iloc[rand_manga_index,col_locs[0]],dataframe.iloc[rand_manga_index,col_locs[1]]]
+        #remove \xa0 
+        if manga_info[0].find('\xa0') != -1:
+            manga_info[0] = manga_info[0].replace(u'\xa0', u' ')
 
 
-    return manga_info
+        return manga_info
 
 def sorted_genre_cols(dataframe):
     """
@@ -145,74 +151,98 @@ def main_menu(userinput,dataframe):
     userinput = input("Enter Menu option ")
     user_valid = True
 
-def generate_image_url(title):
+def generate_image_url(title = ""):
     """
     MAKE HEADER HERE 
     return: List [a valid managdex image url,filename]
+    misc:
+    Notes: probably change the general exceptions to be more specific later on
     """
     #Step 1 - send title to mangadex and await response-------
     print(title)
     print("Checking for valid title...")
     payload ={'title': title}
-    response = requests.get('https://api.mangadex.org/manga',params=payload,timeout=10)
-    
-    if(not response.ok):
-        print("Error: cannot obtain valid manga ")
-        return None #this should return the bidoof url/image
+    #this causes a ton of crashes if cannot connect to server 
+    try:
+        response = requests.get('https://api.mangadex.org/manga',params=payload,timeout=4)
+    except Exception:
+                print("Error: Cannot connect, timeout error")
+    else:
 
-    response_json= response.json() #convert response into a json
+        if(not response.ok):
+            print("Error: cannot obtain valid manga ")
+            return None #this should return the bidoof url/image
 
-    #step 2 base manga ID check---------
-    print("checking for manga ID...")
-    base_id = response_json['results'][0]['data']['id'] #exception is thrown here, IndexError: list index out of range, see what manga causes it and 
-                                                        #and handle the exception, this could be a manga not in mangadex, fuck it just handle the index out of bounds exception
-    
-    id_payload = {}
-    id_payload['manga[]'] = [base_id]
-    id_payload['limit'] = 100
-    cover = requests.get('https://api.mangadex.org/cover',params=id_payload,timeout=10)
-    print(cover.status_code)
-    #in case 400 code for cover 
-    if(not cover.ok):
-        print("Error: cannot obtain valid manga ID ")
-        return None #this should return the bidoof url/image
+        response_json= response.json() #convert response into a json
 
-    json_cover = cover.json()
+        #step 2 base manga ID check---------
+        print("checking for manga ID...")
+        try:
+            base_id = response_json['results'][0]['data']['id'] 
+        except IndexError as ex:
+            print("Cannot get valid index")
+            base_cover_url = ""
+        else:
+            id_payload = {}
+            id_payload['manga[]'] = [base_id]
+            id_payload['limit'] = 100
+            #this causes a ton of crashes if cannot connect to server 
+            try:
+                cover = requests.get('https://api.mangadex.org/cover',params=id_payload,timeout=4)
+            except Exception:
+                print("Error: Cannot connect, timeout error")
+                #make bidoof base url
+            else:
+                print(cover.status_code)
+                #in case 400 code for cover 
+                if(not cover.ok):
+                    print("Error: cannot obtain valid manga ID ")
+                    return None #this should return the bidoof url/image
 
-
-    #step 3 generate mangadex url---------
-    print("Checking for valid url...")
-    volume = ""
-    file_name = ""
-    for item in json_cover['results']:
-        print(item['data']['attributes']['volume'],item['data']['attributes']['fileName'])
-
-        if(item['data']['attributes']['volume'] == '1'):
-            volume = item['data']['attributes']['volume']
-            file_name = item['data']['attributes']['fileName']
-
-        elif(item['data']['attributes']['volume'] == None):#get the default cover if there is none
-            file_name = item['data']['attributes']['fileName']
+                json_cover = cover.json()
 
 
-    base_cover_url = 'https://uploads.mangadex.org/covers/'
-    base_cover_url+= base_id + '/'+file_name
+                #step 3 generate mangadex url---------
+                print("Checking for valid url...")
+                volume = ""
+                file_name = ""
+                for item in json_cover['results']:
+                    print(item['data']['attributes']['volume'],item['data']['attributes']['fileName'])
 
-    url_ping = requests.get(base_cover_url)
-        
-        #failsafe for 400 url_ping
-    if(not url_ping.ok):
-        print("Error: cannot obtain valid manga  url")
-        return None #this should return the bidoof url/image
+                    if(item['data']['attributes']['volume'] == '1'):
+                        volume = item['data']['attributes']['volume']
+                        file_name = item['data']['attributes']['fileName']
 
-    #create image CHANGE TO SAVE TO A FILE LOC 
-    
-    urllib.request.urlretrieve(base_cover_url,file_name)
-    img = Image.open(file_name)
-    img.show()
-    
+                    elif(item['data']['attributes']['volume'] == None):#get the default cover if there is none
+                        file_name = item['data']['attributes']['fileName']
 
-    return base_cover_url
+
+                base_cover_url = 'https://uploads.mangadex.org/covers/'
+                base_cover_url+= base_id + '/'+file_name
+                try:
+                    url_ping = requests.get(base_cover_url,timeout=4)
+                except Exception:
+                    print('Error:Cannot connect, timeout Error')
+                else:
+                    #failsafe for 400 url_ping
+                    if(not url_ping.ok):
+                        print("Error: cannot obtain valid manga  url")
+                        return None #this should return the bidoof url/image
+
+                    #create image save to a file path
+                    #check if the /img path exists first 
+                
+                    if(not os.path.exists('img')):
+                        print('/img path does not exist')
+                            
+                    
+                    urllib.request.urlretrieve(base_cover_url,file_name)
+
+                    img = Image.open(file_name)
+                    img.show()
+                    
+                    
+                    return base_cover_url
 
 def initlize_dataframe(file_name):
     """
@@ -254,12 +284,24 @@ def get_max_row_count(dataframe):
         max_row = dataframe[dataframe.columns[0]].count()-1
         return max_row
 
+def go_to_page(manga_id):
+    """
+    Function: 
+    Pre-Condition: 
+    Post-Conditon: Take user to randomly generated manga's page 
+    Return: 
+    Misc: 
+    """
+    base_url = 'https://mangadex.org/title/'
+    base_url+=manga_id
 
-
-
-
-       
-
+    try:
+        webbrowser.open(base_url)  # Go to example.com
+    except webbrowser.Error as ex:
+        print("Something went wrong with opening the url ")
+    
+    
+    
 if __name__ == "__main__":
 
  
@@ -271,6 +313,7 @@ if __name__ == "__main__":
     manga_fortune_cookie = generate_rand_manga(manga_base,manga_max_row)
     #manga_fortune_cookie = filtered_search(manga_base,"Action")
     img_url = generate_image_url(manga_fortune_cookie[0]) #possibly move this to generate_rand_manga()
+    
     
 
 
