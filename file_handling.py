@@ -12,14 +12,19 @@ from PIL import Image
 from pandas.core.frame import DataFrame
 from pandas.tseries.offsets import DateOffset
 
-def initlize_dataframe(file_name):
+import os
+from os import path
+
+
+
+def initlize_dataframe(file_path):
     """
     MAKE HEADER HERE 
     return: List [mangadataframe,rowcount]
     """
     #try to load in a valid xlsx file 
     try:
-        pd.read_excel(file_name)
+        pd.read_excel(file_path)
     #fail, exception thrown 
     
     except FileNotFoundError:
@@ -28,7 +33,7 @@ def initlize_dataframe(file_name):
     #Success 
     else:
         #initlize the dataframe
-        manga_base = pd.read_excel(file_name)
+        manga_base = pd.read_excel(file_path) #get excel sheet from file path
         
         cols = list(manga_base.columns.values)
         max_row = manga_base[manga_base.columns[0]].count()-1

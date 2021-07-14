@@ -15,14 +15,14 @@ from PIL import Image
 from pandas.core.frame import DataFrame
 from pandas.tseries.offsets import DateOffset
    
+file_path = r"C:\Users\Tj\Desktop\Manga database.xlsx" #file path as a strig literal, change this file path for browser
 
-   
 if __name__ == "__main__":
 
  
-    manga_base = initlize_dataframe('Manga database.xlsx')
+    manga_base = initlize_dataframe(file_path)
     manga_max_row = get_max_row_count(manga_base)
-    user_input = 0
+  
     print("Welcome to the prototype fortune cookie")
     #testing only, generate a random manga and image from mangadex 
     manga_fortune_cookie = generate_rand_manga(manga_base,manga_max_row)

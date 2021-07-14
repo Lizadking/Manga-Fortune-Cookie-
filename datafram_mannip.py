@@ -155,9 +155,6 @@ def generate_image_url(title = ""):
     misc:
     Notes: probably change the general exceptions to be more specific later on
     """
-    
-    
-
 
     fail_path = 'img\\bidoof.png'
     #Step 1 - send title to mangadex and await response-------
